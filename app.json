@@ -1,0 +1,36 @@
+{
+  "expo": {
+    "name": "ctzmov",
+    "slug": "ctzmov",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/robo.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "permissions": ["INTERNET"],
+      "useCleartextTraffic": true, 
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.cfcuevav.ctzmov"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "c5b30fcc-86b2-4b8a-a5fb-f935f24ef050"
+      }
+    }
+  }
+}
