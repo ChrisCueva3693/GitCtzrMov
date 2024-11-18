@@ -12,17 +12,31 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
+    "updates": {
+      "fallbackToCacheTimeout": 0,
+      "url": "https://u.expo.dev/c5b30fcc-86b2-4b8a-a5fb-f935f24ef050"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.cfcuevav.ctzmov"
     },
     "android": {
-      "permissions": ["INTERNET"],
-      "useCleartextTraffic": true, 
+      "package": "com.cfcuevav.ctzmov",
+      "versionCode": 1,
+      "permissions": [
+        "INTERNET",
+        "ACCESS_NETWORK_STATE"
+      ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.cfcuevav.ctzmov"
+      "config": {
+        "usesCleartextTraffic": true
+      }
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -31,6 +45,19 @@
       "eas": {
         "projectId": "c5b30fcc-86b2-4b8a-a5fb-f935f24ef050"
       }
+    },
+    "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
+      ]
+    ],
+    "runtimeVersion": {
+      "policy": "sdkVersion"
     }
   }
 }

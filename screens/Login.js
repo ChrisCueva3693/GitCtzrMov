@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import { Text, StyleSheet, View, Image, TextInput, TouchableOpacity, Alert } from 'react-native';
+import { Platform } from 'react-native';
+import * as Network from 'expo-network';
 
 export default function Login(props) {
     const [username, setUsername] = useState("");
@@ -18,16 +20,40 @@ export default function Login(props) {
         if (!validateInputs()) return;
     
         setIsLoading(true);
-        
+    
+        // Primero verificamos la conectividad
+        try {
+            const networkState = await Network.getNetworkStateAsync();
+            if (!networkState.isConnected || !networkState.isInternetReachable) {
+                Alert.alert(
+                    "Error de Conexión",
+                    "Por favor verifica tu conexión a internet"
+                );
+                setIsLoading(false);
+                return;
+            }
+        } catch (error) {
+            console.log("Error checking network:", error);
+        }
+    
         const urls = [
             "http://192.168.18.1:8081/ApiMov/api/auth/login",
             "http://186.4.230.233:8081/ApiMov/api/auth/login"
         ];
     
-        let loginSuccess = false;
+        // En producción, usar solo la URL pública
+        const productionUrls = __DEV__ ? urls : ["http://186.4.230.233:8081/ApiMov/api/auth/login"];
     
-        for (const url of urls) {
+        let loginSuccess = false;
+        let lastError = null;
+    
+        for (const url of productionUrls) {
             try {
+                console.log(`[${__DEV__ ? 'DEV' : 'PROD'}] Intentando conexión a: ${url}`);
+    
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 segundos timeout
+    
                 const response = await fetch(url, {
                     method: "POST",
                     headers: { 
@@ -36,37 +62,64 @@ export default function Login(props) {
                     },
                     body: JSON.stringify({ 
                         username: username.trim(), 
-                        password: password.trim() 
-                    })
+                        password: password.trim(),
+                        platform: Platform.OS, // Útil para debugging
+                        version: Platform.Version,
+                        isDev: __DEV__
+                    }),
+                    signal: controller.signal
+                });
+    
+                clearTimeout(timeoutId);
+    
+                console.log(`Respuesta del servidor (${url}):`, {
+                    status: response.status,
+                    statusText: response.statusText
                 });
     
                 const result = await response.json();
     
                 if (response.ok && result.success) {
-                    Alert.alert("Éxito", "Inicio de sesión exitoso");
-                    props.navigation.navigate('Home'); // Navega a la pantalla Home
                     loginSuccess = true;
-                    break; // Detiene el bucle si el login fue exitoso
+                    Alert.alert("Éxito", "Inicio de sesión exitoso");
+                    props.navigation.navigate('Home');
+                    break;
                 } else {
-                    // Si las credenciales son incorrectas, muestra el mensaje de error
-                    Alert.alert("Error", result.message || "Credenciales inválidas");
-                    break; // Sale del bucle si la respuesta es válida pero con credenciales incorrectas
+                    lastError = result.message || "Credenciales inválidas";
+                    console.log("Error de autenticación:", lastError);
+                    break;
                 }
             } catch (error) {
-                console.error(`Error con URL ${url}:`, error);
+                console.error(`Error con URL ${url}:`, {
+                    message: error.message,
+                    name: error.name,
+                    stack: error.stack
+                });
+    
+                lastError = error.message;
+                
+                if (error.name === 'AbortError') {
+                    lastError = "La conexión tardó demasiado tiempo. Por favor, intenta de nuevo.";
+                    continue;
+                }
+                
+                if (error.message.includes('Network') || 
+                    error.message.includes('timeout') || 
+                    error.message.includes('connection')) {
+                    continue;
+                }
                 break;
-                // Continúa al siguiente URL en caso de error de red
             }
         }
+    
+        setIsLoading(false);
     
         if (!loginSuccess) {
             Alert.alert(
                 "Error", 
-                "No se pudo conectar con el servidor en ninguna de las direcciones. Verifica tu conexión."                
+                lastError || "No se pudo conectar con el servidor. Verifica tu conexión."
             );
         }
-    
-        setIsLoading(false);
     };
     
 

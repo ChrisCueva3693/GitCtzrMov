@@ -1,73 +1,190 @@
 import React, { useState, useEffect } from "react";
-import { Text, StyleSheet, View, FlatList, ActivityIndicator, TextInput } from 'react-native';
+import { 
+    Text, 
+    StyleSheet, 
+    View, 
+    FlatList, 
+    ActivityIndicator, 
+    TextInput,
+    RefreshControl,
+    Alert,
+    Platform 
+} from 'react-native';
+import * as Network from 'expo-network';
 
 export default function Home() {
-    const [productos, setProductos] = useState([]); // Estado para almacenar los productos
-    const [isLoading, setIsLoading] = useState(true); // Estado para indicar carga
-    const [searchCode, setSearchCode] = useState(''); // Estado para almacenar el código de búsqueda
+    const [productos, setProductos] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [searchCode, setSearchCode] = useState('');
+    const [refreshing, setRefreshing] = useState(false);
+    const [error, setError] = useState(null);
 
-    useEffect(() => {
-        const fetchProductos = async () => {
+    const urls = [
+        "http://192.168.18.1:8081/ctzrApi/api/productos",
+        "http://186.4.230.233:8081/ctzrApi/api/productos"
+    ];
+
+    // En producción, usar solo la URL pública
+    const productionUrls = __DEV__ ? urls : ["http://186.4.230.233:8081/ctzrApi/api/productos"];
+
+    const fetchProductos = async (showLoadingIndicator = true) => {
+        if (showLoadingIndicator) setIsLoading(true);
+        setError(null);
+
+        // Verificar conectividad primero
+        try {
+            const networkState = await Network.getNetworkStateAsync();
+            if (!networkState.isConnected || !networkState.isInternetReachable) {
+                throw new Error("No hay conexión a internet");
+            }
+        } catch (error) {
+            console.log("Error checking network:", error);
+        }
+
+        let lastError = null;
+        let fetchSuccess = false;
+
+        for (const url of productionUrls) {
             try {
-                // Primer intento con la primera URL
-                let response = await fetch("http://192.168.18.1:8081/ctzrApi/api/productos");
-                
-                // Si la primera URL falla, intenta con la segunda URL
+                console.log(`[${__DEV__ ? 'DEV' : 'PROD'}] Intentando obtener productos de: ${url}`);
+
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                    },
+                    signal: controller.signal
+                });
+
+                clearTimeout(timeoutId);
+
+                console.log(`Respuesta del servidor (${url}):`, {
+                    status: response.status,
+                    statusText: response.statusText
+                });
+
                 if (!response.ok) {
-                    console.log("Primera URL fallida, intentando con la segunda...");
-                    response = await fetch("http://186.4.230.233:8081/ctzrApi/api/productos");
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
 
-                // Si la respuesta es válida, se procesa la data
-                if (response.ok) {
-                    const data = await response.json();
-                    setProductos(data); // Guarda los productos en el estado
+                const data = await response.json();
+                
+                if (Array.isArray(data)) {
+                    setProductos(data);
+                    fetchSuccess = true;
+                    break;
                 } else {
-                    throw new Error("No se pudo obtener productos de ninguna de las URLs");
+                    throw new Error("La respuesta no tiene el formato esperado");
                 }
             } catch (error) {
-                console.error("Error al obtener productos:", error);
-            } finally {
-                setIsLoading(false); // Desactiva el indicador de carga
+                console.error(`Error con URL ${url}:`, {
+                    message: error.message,
+                    name: error.name,
+                    stack: error.stack
+                });
+
+                lastError = error.message;
+
+                if (error.name === 'AbortError') {
+                    lastError = "La conexión tardó demasiado tiempo";
+                    continue;
+                }
+
+                if (error.message.includes('Network') || 
+                    error.message.includes('timeout') || 
+                    error.message.includes('connection')) {
+                    continue;
+                }
+                break;
             }
-        };
+        }
 
+        if (!fetchSuccess) {
+            setError(lastError || "No se pudieron cargar los productos");
+            if (productos.length === 0) {
+                Alert.alert(
+                    "Error", 
+                    "No se pudieron cargar los productos. Por favor, verifica tu conexión."
+                );
+            }
+        }
+
+        setIsLoading(false);
+        setRefreshing(false);
+    };
+
+    useEffect(() => {
         fetchProductos();
-    }, []); // Solo se ejecuta una vez al montar el componente
+    }, []);
 
-    // Renderiza cada producto en la lista
+    const onRefresh = React.useCallback(() => {
+        setRefreshing(true);
+        fetchProductos(false);
+    }, []);
+
+    const productosFiltrados = React.useMemo(() => {
+        return productos.filter((producto) =>
+            producto.codigo.toLowerCase().includes(searchCode.toLowerCase()) ||
+            producto.nombre.toLowerCase().includes(searchCode.toLowerCase())
+        );
+    }, [productos, searchCode]);
+
     const renderProducto = ({ item }) => (
         <View style={styles.itemContainer}>
             <Text style={styles.codigo}>{item.codigo}</Text>
             <Text style={styles.nombre}>{item.nombre}</Text>
-            <Text style={styles.costo}>Costo: ${item.costoEstandar}</Text>
+            <Text style={styles.costo}>Costo: ${item.costoEstandar?.toFixed(2) || '0.00'}</Text>
         </View>
     );
 
-    // Filtra los productos según el código ingresado
-    const productosFiltrados = productos.filter((producto) =>
-        producto.codigo.toLowerCase().includes(searchCode.toLowerCase())
+    const EmptyListComponent = () => (
+        <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>
+                {error ? 
+                    "No se pudieron cargar los productos" : 
+                    searchCode ? 
+                        "No se encontraron productos" : 
+                        "No hay productos disponibles"}
+            </Text>
+        </View>
     );
 
     return (
         <View style={styles.container}>
             <Text style={styles.title}>Cotizer Móvil</Text>
 
-            {/* Campo de entrada para buscar por código */}
             <TextInput
                 style={styles.input}
-                placeholder="Buscar por código"
+                placeholder="Buscar por código o nombre"
                 value={searchCode}
-                onChangeText={(text) => setSearchCode(text)}
+                onChangeText={setSearchCode}
             />
 
             {isLoading ? (
-                <ActivityIndicator size="large" color="darkorange" /> // Indicador de carga
+                <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color="darkorange" />
+                    <Text style={styles.loadingText}>Cargando productos...</Text>
+                </View>
             ) : (
                 <FlatList
-                    data={productosFiltrados} // Usamos los productos filtrados aquí
-                    keyExtractor={(item) => item.id.toString()} // Clave única para cada producto
-                    renderItem={renderProducto} // Renderiza cada elemento
+                    data={productosFiltrados}
+                    keyExtractor={(item) => item.id?.toString() || Math.random().toString()}
+                    renderItem={renderProducto}
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={refreshing}
+                            onRefresh={onRefresh}
+                            colors={["darkorange"]}
+                        />
+                    }
+                    ListEmptyComponent={EmptyListComponent}
+                    initialNumToRender={10}
+                    maxToRenderPerBatch={10}
+                    windowSize={10}
                 />
             )}
         </View>
@@ -85,6 +202,7 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         textAlign: 'center',
         marginBottom: 20,
+        marginTop: Platform.OS === 'ios' ? 50 : 20,
     },
     input: {
         height: 40,
@@ -93,9 +211,10 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         paddingHorizontal: 10,
         marginBottom: 20,
+        backgroundColor: 'white',
     },
     itemContainer: {
-        backgroundColor: '#f8f8f8',
+        backgroundColor: 'white',
         padding: 15,
         borderRadius: 10,
         marginBottom: 10,
@@ -118,5 +237,25 @@ const styles = StyleSheet.create({
     costo: {
         fontSize: 14,
         color: '#777',
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    loadingText: {
+        marginTop: 10,
+        color: 'darkorange',
+    },
+    emptyContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingTop: 50,
+    },
+    emptyText: {
+        fontSize: 16,
+        color: '#666',
+        textAlign: 'center',
     },
 });
