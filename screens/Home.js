@@ -8,7 +8,10 @@ import {
     TextInput,
     RefreshControl,
     Alert,
-    Platform 
+    Platform,
+    Modal,
+    TouchableOpacity,
+    ScrollView
 } from 'react-native';
 import * as Network from 'expo-network';
 
@@ -18,6 +21,12 @@ export default function Home() {
     const [searchCode, setSearchCode] = useState('');
     const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState(null);
+    const [selectedProduct, setSelectedProduct] = useState(null);
+    const [modalVisible, setModalVisible] = useState(false);
+    const [inventoryData, setInventoryData] = useState(null);
+    const [priceData, setPriceData] = useState(null);
+    const [costData, setCostData] = useState(null);
+    const [loadingDetails, setLoadingDetails] = useState(false);
 
     const urls = [
         "http://192.168.18.1:8081/ctzrApi/api/productos",
@@ -117,6 +126,44 @@ export default function Home() {
         setRefreshing(false);
     };
 
+    const fetchProductDetails = async (producto) => {
+        setLoadingDetails(true);
+        const baseUrl = __DEV__ ? "http://192.168.18.1:8081" : "http://186.4.230.233:8081";
+        
+        try {
+            // Fetch inventario
+            const invResponse = await fetch(`${baseUrl}/ctzrApi/api/inventario/${producto.codigo}`);
+            const inventoryData = await invResponse.json();
+            setInventoryData(inventoryData);
+
+            // Fetch precio unitario
+            const priceResponse = await fetch(
+                `${baseUrl}/ctzrApi/api/lista-precios/precio-unitario?codigo=${producto.codigo}`
+            );
+            const priceData = await priceResponse.json();
+            setPriceData(priceData);
+
+            // Fetch costo producto
+            const costResponse = await fetch(
+                `${baseUrl}/ctzrApi/api/costo-producto/costo?codigo=${producto.codigo}`
+            );
+            const costData = await costResponse.json();
+            setCostData(costData);
+
+        } catch (error) {
+            Alert.alert("Error", "No se pudo obtener los detalles del producto");
+            console.error(error);
+        } finally {
+            setLoadingDetails(false);
+        }
+    };
+
+    const handleProductPress = (producto) => {
+        setSelectedProduct(producto);
+        setModalVisible(true);
+        fetchProductDetails(producto);
+    };
+
     useEffect(() => {
         fetchProductos();
     }, []);
@@ -133,14 +180,6 @@ export default function Home() {
         );
     }, [productos, searchCode]);
 
-    const renderProducto = ({ item }) => (
-        <View style={styles.itemContainer}>
-            <Text style={styles.codigo}>{item.codigo}</Text>
-            <Text style={styles.nombre}>{item.nombre}</Text>
-            <Text style={styles.costo}>Costo: ${item.costoEstandar?.toFixed(2) || '0.00'}</Text>
-        </View>
-    );
-
     const EmptyListComponent = () => (
         <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>
@@ -151,6 +190,82 @@ export default function Home() {
                         "No hay productos disponibles"}
             </Text>
         </View>
+    );
+
+    const renderProducto = ({ item }) => (
+        <TouchableOpacity 
+            style={styles.itemContainer}
+            onPress={() => handleProductPress(item)}
+        >
+            <Text style={styles.codigo}>{item.codigo}</Text>
+            <Text style={styles.nombre}>{item.nombre}</Text>
+        </TouchableOpacity>
+    );
+
+    const ProductDetailsModal = () => (
+        <Modal
+            animationType="slide"
+            transparent={true}
+            visible={modalVisible}
+            onRequestClose={() => setModalVisible(false)}
+        >
+            <View style={styles.modalContainer}>
+                <View style={styles.modalContent}>
+                    <ScrollView>
+                        <Text style={styles.modalTitle}>
+                            {selectedProduct?.nombre}
+                        </Text>
+                        <Text style={styles.modalSubtitle}>
+                            Código: {selectedProduct?.codigo}
+                        </Text>
+
+                        {loadingDetails ? (
+                            <ActivityIndicator size="large" color="darkorange" />
+                        ) : (
+                            <>
+                                {/* Inventario */}
+                                <View style={styles.sectionContainer}>
+                                    <Text style={styles.sectionTitle}>Inventario</Text>
+                                    {inventoryData?.map((inv, index) => (
+                                        <View key={index} style={styles.inventoryItem}>
+                                            <Text style={styles.inventoryName}>{inv.nombre}</Text>
+                                            <Text style={styles.inventoryTotal}>
+                                                Total: {inv.total.toFixed(1)}
+                                            </Text>
+                                        </View>
+                                    ))}
+                                </View>
+
+                                {/* Precios */}
+                                <View style={styles.sectionContainer}>
+                                    <Text style={styles.sectionTitle}>Precios Unitarios</Text>
+                                    {priceData?.map((price, index) => (
+                                        <Text key={index} style={styles.priceItem}>
+                                            Precio {index + 1}: ${price.toFixed(2)}
+                                        </Text>
+                                    ))}
+                                </View>
+
+                                {/* Costo */}
+                                <View style={styles.sectionContainer}>
+                                    <Text style={styles.sectionTitle}>Costo del Producto</Text>
+                                    <Text style={styles.costItem}>
+                                        ${Number(costData).toFixed(2)}
+                                    </Text>
+                                </View>
+                            </>
+                        )}
+
+                        <TouchableOpacity
+                            style={styles.closeButton}
+                            onPress={() => setModalVisible(false)}
+                        >
+                            <Text style={styles.closeButtonText}>Cerrar</Text>
+                        </TouchableOpacity>
+                    </ScrollView>
+                </View>
+            </View>
+        </Modal>
     );
 
     return (
@@ -187,6 +302,8 @@ export default function Home() {
                     windowSize={10}
                 />
             )}
+
+            <ProductDetailsModal />
         </View>
     );
 }
@@ -257,5 +374,78 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: '#666',
         textAlign: 'center',
+    },
+    modalContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    },
+    modalContent: {
+        backgroundColor: 'white',
+        borderRadius: 20,
+        padding: 20,
+        width: '90%',
+        maxHeight: '80%',
+        elevation: 5,
+    },
+    modalTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        marginBottom: 5,
+        color: 'darkorange',
+    },
+    modalSubtitle: {
+        fontSize: 16,
+        color: '#666',
+        marginBottom: 15,
+    },
+    sectionContainer: {
+        marginVertical: 10,
+        padding: 10,
+        backgroundColor: '#f8f8f8',
+        borderRadius: 10,
+    },
+    sectionTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        marginBottom: 10,
+        color: '#333',
+    },
+    inventoryItem: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        paddingVertical: 5,
+    },
+    inventoryName: {
+        fontSize: 14,
+        color: '#444',
+    },
+    inventoryTotal: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: '#666',
+    },
+    priceItem: {
+        fontSize: 14,
+        color: '#444',
+        paddingVertical: 3,
+    },
+    costItem: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: 'darkorange',
+    },
+    closeButton: {
+        backgroundColor: 'darkorange',
+        padding: 15,
+        borderRadius: 10,
+        alignItems: 'center',
+        marginTop: 20,
+    },
+    closeButtonText: {
+        color: 'white',
+        fontSize: 16,
+        fontWeight: 'bold',
     },
 });
