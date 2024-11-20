@@ -230,20 +230,23 @@ export default function Home() {
                                         <View key={index} style={styles.inventoryItem}>
                                             <Text style={styles.inventoryName}>{inv.nombre}</Text>
                                             <Text style={styles.inventoryTotal}>
-                                                Total: {inv.total.toFixed(1)}
+                                                 {inv.total.toFixed(1)}
                                             </Text>
                                         </View>
                                     ))}
                                 </View>
-
-                                {/* Precios */}
-                                <View style={styles.sectionContainer}>
+                                
+                                 {/* Precios */}
+                                 <View style={styles.sectionContainer}>
                                     <Text style={styles.sectionTitle}>Precios Unitarios</Text>
-                                    {priceData?.map((price, index) => (
-                                        <Text key={index} style={styles.priceItem}>
-                                            Precio {index + 1}: ${price.toFixed(2)}
-                                        </Text>
-                                    ))}
+                                    {priceData?.map((price, index) => {
+                                        const priceLabel = String.fromCharCode(65 + index); // 65 is ASCII for 'A'
+                                        return (
+                                            <Text key={index} style={styles.priceItem}>
+                                                 {priceLabel}: ${price.toFixed(2)}
+                                            </Text>
+                                        );
+                                    })}
                                 </View>
 
                                 {/* Costo */}
