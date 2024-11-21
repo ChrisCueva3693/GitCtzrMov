@@ -37,12 +37,11 @@ export default function Login(props) {
         }
     
         const urls = [
-            "http://192.168.18.1:8081/ApiMov/api/auth/login",
-            "http://186.4.230.233:8081/ApiMov/api/auth/login"
+            "http://192.168.18.1:8081/ApiMov/api/auth/login"
         ];
     
         // En producción, usar solo la URL pública
-        const productionUrls = __DEV__ ? urls : ["http://186.4.230.233:8081/ApiMov/api/auth/login"];
+        const productionUrls = __DEV__ ? urls : ["http://780f07a3d368.sn.mynetname.net:8081/ApiMov/api/auth/login"];
     
         let loginSuccess = false;
         let lastError = null;
@@ -81,7 +80,7 @@ export default function Login(props) {
     
                 if (response.ok && result.success) {
                     loginSuccess = true;
-                    Alert.alert("Éxito", "Inicio de sesión exitoso");
+                    //Alert.alert("Éxito", "Inicio de sesión exitoso");
                     props.navigation.navigate('Home');
                     break;
                 } else {
@@ -125,12 +124,12 @@ export default function Login(props) {
 
     return (
         <View style={style.container}>
-            <View>
+            <View>                
                 <Image
-                    source={{ uri: 'https://static.vecteezy.com/system/resources/previews/030/751/118/non_2x/cute-little-robot-ai-generative-png.png' }}
+                    source={require('../assets/robo.png')}
                     style={style.image}
                 />
-            </View>
+            </View>            
             <View style={style.tarjeta}>
                 <View style={style.cajaTexto}>
                     <TextInput

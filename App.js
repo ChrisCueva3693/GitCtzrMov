@@ -17,7 +17,7 @@ export default function App(){
         <Stack.Screen name="Login" component={Login}
         options={
           {
-            title:"LOGIN",
+            title:"Cotizer Movil",
             headerTintColor:"white",
             headerTitleAlign:"center",
             headerStyle:{backgroundColor:"darkorange"},

@@ -54,7 +54,8 @@
             "usesCleartextTraffic": true
           }
         }
-      ]
+      ],
+      "expo-barcode-scanner"
     ],
     "runtimeVersion": {
       "policy": "sdkVersion"

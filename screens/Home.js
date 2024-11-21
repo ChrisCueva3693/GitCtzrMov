@@ -14,6 +14,8 @@ import {
     ScrollView
 } from 'react-native';
 import * as Network from 'expo-network';
+import { Camera } from 'expo-camera';
+
 
 export default function Home() {
     const [productos, setProductos] = useState([]);
@@ -27,14 +29,16 @@ export default function Home() {
     const [priceData, setPriceData] = useState(null);
     const [costData, setCostData] = useState(null);
     const [loadingDetails, setLoadingDetails] = useState(false);
+    
+    
 
     const urls = [
         "http://192.168.18.1:8081/ctzrApi/api/productos",
-        "http://186.4.230.233:8081/ctzrApi/api/productos"
+        "http://780f07a3d368.sn.mynetname.net:8081/ctzrApi/api/productos"
     ];
 
     // En producción, usar solo la URL pública
-    const productionUrls = __DEV__ ? urls : ["http://186.4.230.233:8081/ctzrApi/api/productos"];
+    const productionUrls = __DEV__ ? urls : ["http://780f07a3d368.sn.mynetname.net:8081/ctzrApi/api/productos"];
 
     const fetchProductos = async (showLoadingIndicator = true) => {
         if (showLoadingIndicator) setIsLoading(true);
@@ -128,7 +132,7 @@ export default function Home() {
 
     const fetchProductDetails = async (producto) => {
         setLoadingDetails(true);
-        const baseUrl = __DEV__ ? "http://192.168.18.1:8081" : "http://186.4.230.233:8081";
+        const baseUrl = __DEV__ ? "http://192.168.18.1:8081" : "http://780f07a3d368.sn.mynetname.net:8081";
         
         try {
             // Fetch inventario
@@ -151,7 +155,7 @@ export default function Home() {
             setCostData(costData);
 
         } catch (error) {
-            Alert.alert("Error", "No se pudo obtener los detalles del producto");
+           // Alert.alert("Error", "No se pudo obtener los detalles del producto");
             console.error(error);
         } finally {
             setLoadingDetails(false);
@@ -201,7 +205,7 @@ export default function Home() {
             <Text style={styles.nombre}>{item.nombre}</Text>
         </TouchableOpacity>
     );
-
+    //Qr
     const ProductDetailsModal = () => (
         <Modal
             animationType="slide"
@@ -310,6 +314,8 @@ export default function Home() {
         </View>
     );
 }
+
+
 
 const styles = StyleSheet.create({
     container: {
