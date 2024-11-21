@@ -7,6 +7,7 @@ import { NavigationContainer } from "@react-navigation/native";
 import { StatusBar } from "expo-status-bar";
 import Login from "./screens/Login";
 import Home from "./screens/Home";
+import CameraScr from "./screens/CameraScr";
 
 export default function App(){
 
@@ -29,7 +30,15 @@ export default function App(){
             headerTintColor:"white",
             headerTitleAlign:"center",
             headerStyle:{backgroundColor:"darkorange"},
-          }} />       
+          }} /> 
+          <Stack.Screen name="CameraScr" component={CameraScr}
+        options={
+          {
+            title:"Camara QR",
+            headerTintColor:"white",
+            headerTitleAlign:"center",
+            headerStyle:{backgroundColor:"darkorange"},
+          }} />                
       </Stack.Navigator>
     );
   }

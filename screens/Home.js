@@ -11,13 +11,12 @@ import {
     Platform,
     Modal,
     TouchableOpacity,
-    ScrollView
+    ScrollView,
+    Button
 } from 'react-native';
 import * as Network from 'expo-network';
-import { Camera } from 'expo-camera';
 
-
-export default function Home() {
+export default function Home({ navigation }) {
     const [productos, setProductos] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchCode, setSearchCode] = useState('');
@@ -311,6 +310,12 @@ export default function Home() {
             )}
 
             <ProductDetailsModal />
+            {/* Botón para abrir la cámara */}
+            <Button
+                title="Escanear QR"
+                onPress={() => navigation.navigate("CameraScr")} // Navega a la pantalla "Camera"
+                color="darkorange" // Color personalizado (opcional)
+            />
         </View>
     );
 }

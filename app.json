@@ -55,7 +55,8 @@
           }
         }
       ],
-      "expo-barcode-scanner"
+      "expo-barcode-scanner",
+      "expo-camera"
     ],
     "runtimeVersion": {
       "policy": "sdkVersion"
