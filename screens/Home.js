@@ -310,12 +310,7 @@ export default function Home({ navigation }) {
             )}
 
             <ProductDetailsModal />
-            {/* Botón para abrir la cámara */}
-            <Button
-                title="Escanear QR"
-                onPress={() => navigation.navigate("CameraScr")} // Navega a la pantalla "Camera"
-                color="darkorange" // Color personalizado (opcional)
-            />
+            
         </View>
     );
 }
